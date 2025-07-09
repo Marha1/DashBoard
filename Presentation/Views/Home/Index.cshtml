@@ -1,21 +1,96 @@
+@model List<Application.Dtos.AdvertDtos.AdvertShortInfoDto>
 @{
-    ViewData["Title"] = "Главная";
+    ViewData["Title"] = "Доска объявлений";
+    var categories = ViewBag.Categories as List<Application.Dtos.CategoryDtos.CategoryDto>;
+    var cities = ViewBag.Cities as List<Application.Dtos.CityDtos.CityDto>;
+    var selectedCategoryId = ViewBag.SelectedCategoryId as Guid?;
+    var selectedCityId = ViewBag.SelectedCityId as Guid?;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Добро пожаловать на доску объявлений!</h1>
-    
-    <div class="mt-5">
-        @if (User.Identity.IsAuthenticated)
+<div class="container">
+    <!-- Шапка с меню и авторизацией -->
+    <header class="d-flex justify-content-between align-items-center py-3 mb-4 border-bottom">
+        <!-- Меню категорий -->
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="categoryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                @(selectedCategoryId == null ? "Все категории" : categories?.FirstOrDefault(c => c.Id == selectedCategoryId)?.Name ?? "Все категории")
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
+                <li><a class="dropdown-item" href="@Url.Action("Index", new { cityId = selectedCityId })">Все категории</a></li>
+                @if (categories != null)
+                {
+                    foreach (var category in categories)
+                    {
+                        <li><a class="dropdown-item" href="@Url.Action("Index", new { categoryId = category.Id, cityId = selectedCityId })">@category.Name</a></li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <!-- Фильтр по городу -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="cityDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                @(selectedCityId == null ? "Все города" : cities?.FirstOrDefault(c => c.Id == selectedCityId)?.Name ?? "Все города")
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="cityDropdown">
+                <li><a class="dropdown-item" href="@Url.Action("Index", new { categoryId = selectedCategoryId })">Все города</a></li>
+                @if (cities != null)
+                {
+                    foreach (var city in cities)
+                    {
+                        <li><a class="dropdown-item" href="@Url.Action("Index", new { cityId = city.Id, categoryId = selectedCategoryId })">@city.Name</a></li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <!-- Блок авторизации -->
+        <div>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="d-flex align-items-center">
+                    <span class="me-3">@User.Identity.Name</span>
+                    <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-danger">Выйти</a>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex gap-2">
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Войти</a>
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Регистрация</a>
+                </div>
+            }
+        </div>
+    </header>
+
+    <!-- Список объявлений -->
+    <div class="row">
+        @if (Model.Any())
         {
-            <p>Вы вошли как: @User.Identity.Name</p>
-            <a asp-controller="Account" asp-action="Logout" class="btn btn-danger">Выйти</a>
+            foreach (var advert in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        @if (!string.IsNullOrEmpty(advert.MainImageUrl))
+                        {
+                            <img src="@advert.MainImageUrl" class="card-img-top" alt="@advert.Title" style="height: 200px; object-fit: cover;">
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@advert.Title</h5>
+                            <p class="card-text text-muted">@advert.CityName</p>
+                            <p class="card-text">@advert.Price.ToString("C")</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a asp-action="Details" asp-route-id="@advert.Id" class="btn btn-primary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            }
         }
         else
         {
-            <div class="d-flex justify-content-center gap-3">
-                <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Войти</a>
-                <a asp-controller="Account" asp-action="Register" class="btn btn-success">Зарегистрироваться</a>
+            <div class="col-12">
+                <div class="alert alert-info">Объявления не найдены</div>
             </div>
         }
     </div>

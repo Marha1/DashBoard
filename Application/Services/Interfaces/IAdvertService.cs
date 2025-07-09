@@ -12,6 +12,9 @@ namespace Application.Services.Interfaces
             Guid userId, 
             CancellationToken cancellationToken = default);
 
+        Task<Advert> GetWithDetailsAsync(Guid
+            advertId);
+
         Task UpdateAdvertAsync(
             UpdateAdvertDto dto, 
             Guid userId, 
@@ -32,6 +35,12 @@ namespace Application.Services.Interfaces
         Task<List<AdvertShortInfoDto>> GetLatestAdvertsAsync(
             int count, 
             CancellationToken cancellationToken = default);
+        Task<List<AdvertShortInfoDto>> GetByFilterLatestAdvertsAsync(
+            int count, 
+            Guid? categoryId = null, 
+            Guid? cityId = null,
+            CancellationToken cancellationToken = default);
+        
 
         Task<List<AdvertShortInfoDto>> GetAdvertsByCategoryAsync(
             Guid categoryId, 

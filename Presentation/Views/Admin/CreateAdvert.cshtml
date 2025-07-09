@@ -1,0 +1,57 @@
+@model Application.Dtos.AdvertDtos.CreateAdvertDto
+@{
+    ViewData["Title"] = "Создание объявления";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="CreateAdvert" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label asp-for="Title">Заголовок</label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="Description">Описание</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="ContactPhone">Контактный номер</label>
+        <input asp-for="ContactPhone" class="form-control" />
+        <span asp-validation-for="ContactPhone" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="Price">Цена</label>
+        <input asp-for="Price" type="number" step="0.01" class="form-control" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="CityId">Город</label>
+        <select asp-for="CityId" class="form-control" asp-items="@(ViewBag.Cities)">
+            <option value="">-- Выберите город --</option>
+        </select>
+        <span asp-validation-for="CityId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="CategoryId">Категория</label>
+        <select asp-for="CategoryId" class="form-control" asp-items="@(ViewBag.Categories)">
+            <option value="">-- Выберите категорию --</option>
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mt-3">
+        <label asp-for="Images">Картинки</label>
+        <input asp-for="Images" type="file" multiple class="form-control" />
+        <span asp-validation-for="Images" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Создать</button>
+</form>

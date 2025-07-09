@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Application.Dtos.AdvertDtos;
 using Application.Dtos.CategoryDtos;
 using Application.Dtos.CityDtos;
@@ -11,30 +12,31 @@ namespace Presentation.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
-            private readonly ICityService _cityService;
-            private readonly ICategoryService _categoryService;
-            private readonly IAdvertService _advertService;
-            private readonly ILogger<AdminController> _logger;
+        private readonly ICityService _cityService;
+        private readonly ICategoryService _categoryService;
+        private readonly IAdvertService _advertService;
+        private readonly ILogger<AdminController> _logger;
 
-            public AdminController(
-                ICityService cityService,
-                ICategoryService categoryService,
-                IAdvertService advertService,
-                ILogger<AdminController> logger)
-            {
-                _cityService = cityService;
-                _categoryService = categoryService;
-                _advertService = advertService;
-                _logger = logger;
-            }
+        public AdminController(
+            ICityService cityService,
+            ICategoryService categoryService,
+            IAdvertService advertService,
+            ILogger<AdminController> logger)
+        {
+            _cityService = cityService;
+            _categoryService = categoryService;
+            _advertService = advertService;
+            _logger = logger;
+        }
 
-            public IActionResult Index()
-            {
-                _logger.LogInformation("Admin panel accessed");
-                return View();
-            }
+        public IActionResult Index()
+        {
+            _logger.LogInformation("Admin panel accessed");
+            return View();
+        }
+
         #region Управление городами
-        
+
         public async Task<IActionResult> Cities()
         {
             var cities = await _cityService.GetAllCitiesAsync();
@@ -78,7 +80,7 @@ namespace Presentation.Controllers
         #endregion
 
         #region Управление категориями
-        
+
         public async Task<IActionResult> Categories()
         {
             var categories = await _categoryService.GetAllCategoriesAsync();
@@ -110,11 +112,11 @@ namespace Presentation.Controllers
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
             ViewBag.Categories = await _categoryService.GetAllCategoriesAsync();
-    
+
             return View(new CategoryUpdateDto(
                 Id: category.Id,
                 Name: category.Name,
-                Image: null, 
+                Image: null,
                 ParentId: category.ParentId
             ));
         }
@@ -135,7 +137,8 @@ namespace Presentation.Controllers
         #endregion
 
         #region Управление объявлениями
-        
+
+        [HttpGet]
         public async Task<IActionResult> Adverts()
         {
             var adverts = await _advertService.GetLatestAdvertsAsync(100);
@@ -143,11 +146,42 @@ namespace Presentation.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> CreateAdvert()
+        {
+            ViewBag.Cities = new SelectList(await _cityService.GetAllCitiesAsync(), "Id", "Name");
+            ViewBag.Categories = new SelectList(await _categoryService.GetAllCategoriesAsync(), "Id", "Name");
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateAdvert(CreateAdvertDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Cities = new SelectList(await _cityService.GetAllCitiesAsync(), "Id", "Name");
+                ViewBag.Categories = new SelectList(await _categoryService.GetAllCategoriesAsync(), "Id", "Name");
+                return View(model);
+            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");            
+            await _advertService.CreateAdvertAsync(model, Guid.Parse(userId));
+            return RedirectToAction("Adverts");
+        }
+
+        [HttpGet]
         public async Task<IActionResult> EditAdvert(Guid id)
         {
             var advert = await _advertService.GetById(id);
-    
-            // Простое создание DTO
+            if (advert == null)
+            {
+                return NotFound();
+            }
+
+            // Получаем данные для выпадающих списков
+            var cities = (await _cityService.GetAllCitiesAsync())?.ToList() ?? new List<CityDto>();
+            var categories = (await _categoryService.GetAllCategoriesAsync())?.ToList() ?? new List<CategoryDto>();
+
             var model = new UpdateAdvertDto
             {
                 Id = advert.Id,
@@ -155,30 +189,49 @@ namespace Presentation.Controllers
                 Description = advert.Description,
                 Price = advert.Price,
                 ContactPhone = advert.ContactPhone,
-                CityId = advert.CityId,  // Берем ID из связанной сущности
-                CategoryId = advert.Category.Id,
-                NewImages = null,
-                DeletedImageIds = null
+                CityId = advert.CityId,
+                CategoryId = advert.Category?.Id ?? Guid.Empty
             };
 
-            // Простая передача списков для выпадающих меню
-            ViewBag.Cities = new SelectList(await _cityService.GetAllCitiesAsync(), "Id", "Name");
-            ViewBag.Categories = new SelectList(await _categoryService.GetAllCategoriesAsync(), "Id", "Name");
+            // Создаем SelectList с явной проверкой
+            ViewBag.Cities = cities.Any() 
+                ? new SelectList(cities, "Id", "Name", model.CityId) 
+                : new SelectList(new List<CityDto>(), "Id", "Name");
+    
+            ViewBag.Categories = categories.Any()
+                ? new SelectList(categories, "Id", "Name", model.CategoryId)
+                : new SelectList(new List<CategoryDto>(), "Id", "Name");
+
+            ViewBag.ExistingImages = advert.Attachments?
+                .Select(a => new { Id = a.Id, FilePath = a.FilePath })
+                .ToList();
 
             return View(model);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditAdvert(UpdateAdvertDto model)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Cities = await _cityService.GetAllCitiesAsync();
-                ViewBag.Categories = await _categoryService.GetAllCategoriesAsync();
+                ViewBag.Cities = new SelectList(await _cityService.GetAllCitiesAsync(), "Id", "Name", model.CityId);
+                ViewBag.Categories = new SelectList(await _categoryService.GetAllCategoriesAsync(), "Id", "Name", model.CategoryId);
                 return View(model);
             }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");    
+            await _advertService.UpdateAdvertAsync(model, Guid.Parse(userId)); 
+            return RedirectToAction("Adverts");
+        }
 
-            await _advertService.UpdateAdvertAsync(model, Guid.Empty); // Guid.Empty - временно, нужен userId
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAdvert(Guid id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized("User not authorized");    
+            await _advertService.DeleteAdvertAsync(id, Guid.Parse(userId));
             return RedirectToAction("Adverts");
         }
 

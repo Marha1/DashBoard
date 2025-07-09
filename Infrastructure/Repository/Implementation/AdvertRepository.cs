@@ -55,4 +55,24 @@ public class AdvertRepository : BaseRepository<Advert>, IAdvertRepository
             .Include(a => a.Attachments)
             .FirstOrDefaultAsync(a => a.Id == advertId);
     }
+
+    public async Task<List<Advert>> GetLatestAsync(int count, Guid? categoryId = null, Guid? cityId = null)
+    {
+        var query = _context.Adverts
+            .Include(a => a.City)
+            .Include(a => a.Category)
+            .Include(a => a.Attachments)
+            .Where(a => a.IsActive);
+
+        if (categoryId.HasValue)
+            query = query.Where(a => a.CategoryId == categoryId.Value);
+
+        if (cityId.HasValue)
+            query = query.Where(a => a.CityId == cityId.Value);
+
+        return await query
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(count)
+            .ToListAsync();
+    }
 }

@@ -31,32 +31,47 @@ namespace Application.Services.Implementation
             advert.UserId = userId;
             advert.CreatedAt = DateTime.UtcNow;
 
+            if (dto.Images != null && dto.Images.Any())
+            {
+                advert.Attachments = dto.Images.Select(image => new Attachment
+                {
+                    Id = Guid.NewGuid(),
+                    FileName = image.FileName,
+                    FilePath = string.Empty, // Временное значение
+                    UploadDate = DateTime.UtcNow
+                }).ToList();
+            }
+
             await _advertRepository.AddAsync(advert, cancellationToken);
             await _advertRepository.SaveChangesAsync(cancellationToken);
 
             if (dto.Images != null && dto.Images.Any())
             {
-                foreach (var image in dto.Images)
+                foreach (var (image, attachment) in dto.Images.Zip(advert.Attachments, (i, a) => (i, a)))
                 {
-                    var attachment = await _attachmentService.UploadAttachmentAsync(
-                        image, 
-                        advert.Id, 
+                    var uploaded = await _attachmentService.UploadAttachmentAsync(
+                        image,
+                        advert.Id,
                         cancellationToken);
             
-                    advert.Attachments.Add(new Attachment
-                    {
-                        FileName = attachment.FileName,
-                        FilePath = attachment.FilePath,
-                        AdvertId = advert.Id,
-                        UploadDate = DateTime.UtcNow
-                    });
+                    attachment.FileName = uploaded.FileName;
+                    attachment.FilePath = uploaded.FilePath;
                 }
-        
+
                 await _advertRepository.UpdateAsync(advert, cancellationToken);
                 await _advertRepository.SaveChangesAsync(cancellationToken);
             }
 
             return advert.Id;
+        }
+        public async Task<List<AdvertShortInfoDto>> GetByFilterLatestAdvertsAsync(
+            int count, 
+            Guid? categoryId = null, 
+            Guid? cityId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var adverts = await _advertRepository.GetLatestAsync(count, categoryId, cityId);
+            return _mapper.Map<List<AdvertShortInfoDto>>(adverts);
         }
 
         public async Task UpdateAdvertAsync(
@@ -121,6 +136,14 @@ namespace Application.Services.Implementation
         {
             return  await _advertRepository.GetByIdAsync(id);
             
+        }
+
+        public async Task<Advert> GetWithDetailsAsync(Guid
+            advertId)
+        {
+            return await _advertRepository.GetWithDetailsAsync(
+                             advertId)
+                         ?? throw new KeyNotFoundException("Advert not found");
         }
 
         public async Task DeleteAdvertAsync(

@@ -6,11 +6,15 @@
 
 <h2>@ViewData["Title"]</h2>
 
+<a asp-action="CreateAdvert" class="btn btn-primary mb-3">Создать новое объявление</a>
+
 <table class="table">
     <thead>
     <tr>
         <th>ID</th>
         <th>Заголовок</th>
+        <th>Город</th>
+        <th>Категория</th>
         <th>Цена</th>
         <th>Дата создания</th>
         <th>Действия</th>
@@ -22,10 +26,15 @@
         <tr>
             <td>@advert.Id</td>
             <td>@advert.Title</td>
+            <td>@advert.CityName</td>
+            <td>@advert.CategoryName</td>
             <td>@advert.Price.ToString("C")</td>
             <td>@advert.CreatedAt.ToString("g")</td>
             <td>
                 <a asp-action="EditAdvert" asp-route-id="@advert.Id" class="btn btn-sm btn-warning">Редактировать</a>
+                <form asp-action="DeleteAdvert" asp-route-id="@advert.Id" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить объявление?');">Удалить</button>
+                </form>
             </td>
         </tr>
     }

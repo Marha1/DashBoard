@@ -30,29 +30,30 @@ namespace Application.Services.Implementation
             var category = new Category
             {
                 Name = dto.Name,
-                ParentCategoryId = dto.ParentId
+                ParentCategoryId = dto.ParentId,
+                ImageUrl = "default.jpg" // Дефолт, если картинки нет
             };
+
+            // Если есть картинка, сохраняем файл и пишем путь в ImageUrl
+            if (dto.Image != null)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = Guid.NewGuid() + Path.GetExtension(dto.Image.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.Image.CopyToAsync(stream, cancellationToken);
+                }
+
+                // относительный путь для хранения в БД
+                category.ImageUrl = Path.Combine("uploads", uniqueFileName).Replace("\\", "/");
+            }
 
             await _categoryRepository.AddAsync(category, cancellationToken);
             await _categoryRepository.SaveChangesAsync(cancellationToken);
-
-            if (dto.Image != null)
-            {
-                try
-                {
-                    var attachment = await _attachmentService.UploadAttachmentAsync(dto.Image, category.Id, cancellationToken);
-                    category.ImageUrl = attachment.FilePath;
-            
-                    await _categoryRepository.UpdateAsync(category, cancellationToken);
-                    await _categoryRepository.SaveChangesAsync(cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    await _categoryRepository.DeleteAsync(category, cancellationToken);
-                    await _categoryRepository.SaveChangesAsync(cancellationToken);
-                    throw new Exception("Failed to upload category image", ex);
-                }
-            }
 
             return category.Id;
         }
@@ -60,15 +61,25 @@ namespace Application.Services.Implementation
         public async Task UpdateCategoryAsync(CategoryUpdateDto dto, CancellationToken cancellationToken = default)
         {
             var category = await _categoryRepository.GetByIdAsync(dto.Id, cancellationToken)
-                ?? throw new KeyNotFoundException("Category not found");
-            
+                           ?? throw new KeyNotFoundException("Category not found");
+
             category.Name = dto.Name;
             category.ParentCategoryId = dto.ParentId;
 
             if (dto.Image != null)
             {
-                var attachment = await _attachmentService.UploadAttachmentAsync(dto.Image, category.Id, cancellationToken);
-                category.ImageUrl = attachment.FilePath;
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = Guid.NewGuid() + Path.GetExtension(dto.Image.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.Image.CopyToAsync(stream, cancellationToken);
+                }
+
+                category.ImageUrl = Path.Combine("uploads", uniqueFileName).Replace("\\", "/");
             }
 
             await _categoryRepository.UpdateAsync(category, cancellationToken);
