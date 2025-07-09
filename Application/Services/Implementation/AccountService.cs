@@ -4,11 +4,11 @@ using System.Text;
 using Application.Dtos.AccountDtos;
 using Application.Services.Interfaces;
 using AutoMapper;
+using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
 
 namespace Application.Services.Implementation;
 
@@ -56,46 +56,6 @@ public class AccountService : IAccountService
             throw; // Можно повторно выбросить исключение, чтобы обработать его выше
         }
     }
-    
-    public ClaimsPrincipal GetPrincipalFromToken(string token)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-
-        try
-        {
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-            var issuer = _configuration["Jwt:Issuer"];
-            var audience = _configuration["Jwt:Audience"];
-            // Можешь добавить вывод в консоль для дебага, если опять не работает
-            Console.WriteLine("JWT [Issuer] = " + issuer);
-            Console.WriteLine("JWT [Audience] = " + audience);
-
-            var validationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = issuer,
-                ValidateAudience = true,
-                ValidAudience = audience,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero,
-                NameClaimType = ClaimTypes.Name,
-                RoleClaimType = ClaimTypes.Role,
-                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }
-            };
-
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
-            return principal;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Token validation failed: {ex}");
-            throw new SecurityTokenException("Invalid token", ex);
-        }
-    }
-
-
 
 
     /// <summary>
@@ -154,6 +114,13 @@ public class AccountService : IAccountService
         return "User registered successfully";
     }
 
+    /// <summary>
+    ///     Авторизация
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns>Токен авторизации</returns>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
     public async Task<UserInfo> LoginAsync(LoginDto dto)
 {
     var user = await _userManager.FindByEmailAsync(dto.Login) ??
@@ -162,42 +129,42 @@ public class AccountService : IAccountService
     if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
         throw new UnauthorizedAccessException("Invalid login or password");
 
+    if (!user.EmailConfirmed) throw new UnauthorizedAccessException("Email is not confirmed");
+
+    if (await _userManager.IsLockedOutAsync(user)) throw new UnauthorizedAccessException("User is locked out.");
+
     var roles = await _userManager.GetRolesAsync(user);
 
     var claims = new List<Claim>
     {
         new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-        new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new(ClaimTypes.Name, user.UserName ?? string.Empty),
+        new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? "Unknown"),
         new(ClaimTypes.Email, user.Email ?? string.Empty)
     };
-
     claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-    // Получение и проверка конфигурации
-    var issuer = _configuration["Jwt:Issuer"];
-    var audience = _configuration["Jwt:Audience"];
-    var keyString = _configuration["Jwt:Key"];
+    var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ??
+                                     throw new InvalidOperationException("JWT Key is not configured or is invalid"));
+    if (key.Length < 32)
+        throw new InvalidOperationException("JWT Key length must be at least 256 bits (32 bytes).");
 
-    if (string.IsNullOrWhiteSpace(issuer))
-        throw new InvalidOperationException("JWT Issuer is not configured.");
-    if (string.IsNullOrWhiteSpace(audience))
-        throw new InvalidOperationException("JWT Audience is not configured.");
-    if (string.IsNullOrWhiteSpace(keyString))
-        throw new InvalidOperationException("JWT Key is not configured.");
+    var issuer = _configuration["Jwt:Issuer"] ??
+                 throw new InvalidOperationException("JWT Issuer is not configured.");
+    var audience = _configuration["Jwt:Audience"] ??
+                   throw new InvalidOperationException("JWT Audience is not configured.");
 
-    Console.WriteLine($"Creating token with issuer = {issuer}");
+    var tokenDescriptor = new SecurityTokenDescriptor
+    {
+        Subject = new ClaimsIdentity(claims),
+        Expires = DateTime.UtcNow.AddHours(1),
+        Issuer = issuer,
+        Audience = audience,
+        SigningCredentials =
+            new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+    };
 
-    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-
-    var token = new JwtSecurityToken(
-        issuer: issuer,
-        audience: audience,
-        claims: claims,
-        expires: DateTime.UtcNow.AddMinutes(_configuration.GetValue<int>("Jwt:ExpiryInMinutes", 1440)),
-        signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-    );
+    var tokenHandler = new JwtSecurityTokenHandler();
+    var token = tokenHandler.CreateToken(tokenDescriptor);
 
     return new UserInfo
     {
@@ -205,9 +172,10 @@ public class AccountService : IAccountService
         UserName = user.UserName ?? string.Empty,
         Email = user.Email ?? string.Empty,
         Roles = roles.ToList(),
-        Token = new JwtSecurityTokenHandler().WriteToken(token)
+        Token = tokenHandler.WriteToken(token)
     };
 }
+
 
     public async Task SendEmailConfirmedCode(string email)
     {

@@ -12,5 +12,4 @@ public interface IAccountService
     Task EmailConfirmed(string email, string confirmedCode);
     Task SendEmailConfirmedCode(string email);
     Task ResetPasswordAsync(string email, string resetToken, string newPassword);
-    ClaimsPrincipal GetPrincipalFromToken(string token);
 }

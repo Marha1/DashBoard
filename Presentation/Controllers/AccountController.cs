@@ -89,9 +89,9 @@ namespace Presentation.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+            Response.Cookies.Delete("AuthToken");
             return RedirectToAction("Index", "Home");
         }
 

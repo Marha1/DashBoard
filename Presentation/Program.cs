@@ -1,4 +1,9 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Application.Mapping;
 using Application.Services.Implementation;
 using Application.Services.Interfaces;
@@ -6,40 +11,24 @@ using Domain.Interfaces.Repository;
 using Domain.Models;
 using Infrastructure;
 using Infrastructure.Repository.Implementation;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Конфигурация
 var configuration = builder.Configuration;
 
 // MVC и Razor Pages
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Identity с ролями
+// Identity только для работы с UserManager/RoleManager — ни AddCookie, ни ConfigureCookie НЕ добавляем!
 builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationContext>()
     .AddDefaultTokenProviders();
 
-// Настройка авторизации
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => 
-        policy.RequireRole("Admin"));
-});
-
-// Настройка аутентификации (исправленная версия)
+// JWT только через cookie! (ядро исправления)
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -52,27 +41,29 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"])),
-        RoleClaimType = ClaimTypes.Role
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.Name,
+        ClockSkew = TimeSpan.Zero
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Cookies["AuthToken"];
+            if (!string.IsNullOrEmpty(token))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
     };
 });
 
-// Настройка куки (перенесена в отдельный вызов)
-builder.Services.ConfigureApplicationCookie(options =>
+// Авторизация по роли (админка)
+builder.Services.AddAuthorization(options =>
 {
-    options.LoginPath = "/Account/Login";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromDays(30);
-    options.SlidingExpiration = true;
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() 
-        ? CookieSecurePolicy.SameAsRequest 
-        : CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
-builder.Services.AddSession();
-
-// База данных
+// БД
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
@@ -90,7 +81,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailSender, EmailSenderService>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(config => 
+builder.Services.AddAutoMapper(config =>
 {
     config.AddProfile<UserMappingProfile>();
     config.AddProfile<AdvertMappingProfile>();
@@ -100,20 +91,18 @@ builder.Services.AddAutoMapper(config =>
 
 var app = builder.Build();
 
-// Middleware pipeline
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-else
-{
-    // Инициализация ролей при первом запуске
     using (var scope = app.Services.CreateScope())
     {
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         await InitializeRoles(roleManager);
     }
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
@@ -121,41 +110,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Middleware для обработки JWT из куки
-app.Use(async (context, next) =>
-{
-    var token = context.Request.Cookies["AuthToken"];
-    if (!string.IsNullOrEmpty(token))
-    {
-        try
-        {
-            var accountService = context.RequestServices.GetRequiredService<IAccountService>();
-            var principal = accountService.GetPrincipalFromToken(token);
-            
-            // Логирование для отладки
-            Console.WriteLine($"Successfully validated token for: {principal.Identity.Name}");
-            
-            var identity = new ClaimsIdentity(
-                principal.Claims,
-                IdentityConstants.ApplicationScheme,
-                ClaimTypes.Name,
-                ClaimTypes.Role);
-            
-            await context.SignInAsync(IdentityConstants.ApplicationScheme, new ClaimsPrincipal(identity));
-        }
-        catch (SecurityTokenException ex)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning(ex, "Invalid JWT token - removing cookie");
-            context.Response.Cookies.Delete("AuthToken");
-        }
-    }
-    await next();
-});
 
 app.MapControllerRoute(
     name: "admin",
