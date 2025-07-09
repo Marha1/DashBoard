@@ -24,21 +24,21 @@ public class EmailSenderService : IEmailSender
     public async Task SendEmailConfirmedCode(string email, string confirmCode)
     {
         var subject = "Email Confirmation Request";
-        var body = $"Your email confirmation code is: {confirmCode}";
+        var body = $"Код для подтверждения почты: {confirmCode}";
         await SendEmailAsync(email, subject, body);
     }
 
     public async Task SendResetPasswordEmailAsync(string email, string resetToken)
     {
         var subject = "Password Reset Request";
-        var body = $"Your password reset code is: {resetToken}";
+        var body = $"Код сброса: {resetToken}";
         await SendEmailAsync(email, subject, body);
     }
 
     private async Task SendEmailAsync(string recipientEmail, string subject, string body)
     {
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("Call Centre", _smtpEmail));
+        message.From.Add(new MailboxAddress("Доска", _smtpEmail));
         message.To.Add(new MailboxAddress("", recipientEmail));
         message.Subject = subject;
         message.Body = new TextPart("plain") { Text = body };

@@ -19,7 +19,6 @@ var configuration = builder.Configuration;
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Identity только для работы с UserManager/RoleManager — ни AddCookie, ни ConfigureCookie НЕ добавляем!
 builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationContext>()
     .AddDefaultTokenProviders();

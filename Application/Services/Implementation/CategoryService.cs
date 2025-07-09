@@ -27,16 +27,33 @@ namespace Application.Services.Implementation
 
         public async Task<Guid> CreateCategoryAsync(CategoryCreateDto dto, CancellationToken cancellationToken = default)
         {
-            var category = _mapper.Map<Category>(dto);
-            
-            if (dto.Image != null)
+            var category = new Category
             {
-                var attachment = await _attachmentService.UploadAttachmentAsync(dto.Image, category.Id, cancellationToken);
-                category.ImageUrl = attachment.FilePath;
-            }
+                Name = dto.Name,
+                ParentCategoryId = dto.ParentId
+            };
 
             await _categoryRepository.AddAsync(category, cancellationToken);
             await _categoryRepository.SaveChangesAsync(cancellationToken);
+
+            if (dto.Image != null)
+            {
+                try
+                {
+                    var attachment = await _attachmentService.UploadAttachmentAsync(dto.Image, category.Id, cancellationToken);
+                    category.ImageUrl = attachment.FilePath;
+            
+                    await _categoryRepository.UpdateAsync(category, cancellationToken);
+                    await _categoryRepository.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _categoryRepository.DeleteAsync(category, cancellationToken);
+                    await _categoryRepository.SaveChangesAsync(cancellationToken);
+                    throw new Exception("Failed to upload category image", ex);
+                }
+            }
+
             return category.Id;
         }
 

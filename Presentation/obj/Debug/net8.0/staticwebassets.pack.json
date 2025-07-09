@@ -1,0 +1,37 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\Hi-Tech\\RiderProjects\\BulletinBoard\\Presentation\\wwwroot\\uploads\\306bfc1f-140f-4ddd-9ffa-81be843c9bdf.png",
+      "PackagePath": "staticwebassets\\uploads\\306bfc1f-140f-4ddd-9ffa-81be843c9bdf.png"
+    },
+    {
+      "Id": "C:\\Users\\Hi-Tech\\RiderProjects\\BulletinBoard\\Presentation\\wwwroot\\uploads\\a02f7d31-98c2-422c-ab3e-21cacb538f84.png",
+      "PackagePath": "staticwebassets\\uploads\\a02f7d31-98c2-422c-ab3e-21cacb538f84.png"
+    },
+    {
+      "Id": "C:\\Users\\Hi-Tech\\RiderProjects\\BulletinBoard\\Presentation\\wwwroot\\uploads\\a4b5b4b5-ecb7-4d6f-9378-0e2641436234.png",
+      "PackagePath": "staticwebassets\\uploads\\a4b5b4b5-ecb7-4d6f-9378-0e2641436234.png"
+    },
+    {
+      "Id": "C:\\Users\\Hi-Tech\\RiderProjects\\BulletinBoard\\Presentation\\wwwroot\\uploads\\e96f3938-41cb-49f2-9cdd-04289a138ce3.png",
+      "PackagePath": "staticwebassets\\uploads\\e96f3938-41cb-49f2-9cdd-04289a138ce3.png"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.Presentation.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.Presentation.props",
+      "PackagePath": "build\\Presentation.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.Presentation.props",
+      "PackagePath": "buildMultiTargeting\\Presentation.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.Presentation.props",
+      "PackagePath": "buildTransitive\\Presentation.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

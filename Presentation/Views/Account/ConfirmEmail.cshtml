@@ -1,0 +1,27 @@
+@model Presentation.ViewModels.Account.ConfirmEmailViewModel
+
+@{
+    ViewData["Title"] = "Подтверждение email";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="ConfirmEmail" method="post">
+    <div class="form-group mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" readonly />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="ConfirmCode" class="form-label">Код подтверждения</label>
+        <input asp-for="ConfirmCode" class="form-control" />
+        <span asp-validation-for="ConfirmCode" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Подтвердить</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -145,3 +145,4 @@ C:\Users\Hi-Tech\RiderProjects\BulletinBoard\Presentation\obj\Debug\net8.0\refin
 C:\Users\Hi-Tech\RiderProjects\BulletinBoard\Presentation\obj\Debug\net8.0\Presentation.pdb
 C:\Users\Hi-Tech\RiderProjects\BulletinBoard\Presentation\obj\Debug\net8.0\Presentation.genruntimeconfig.cache
 C:\Users\Hi-Tech\RiderProjects\BulletinBoard\Presentation\obj\Debug\net8.0\ref\Presentation.dll
+C:\Users\Hi-Tech\RiderProjects\BulletinBoard\Presentation\bin\Debug\net8.0\Presentation.staticwebassets.runtime.json

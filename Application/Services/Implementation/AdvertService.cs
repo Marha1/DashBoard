@@ -25,14 +25,14 @@ namespace Application.Services.Implementation
             _mapper = mapper;
         }
 
-        public async Task<Guid> CreateAdvertAsync(
-            CreateAdvertDto dto, 
-            Guid userId, 
-            CancellationToken cancellationToken = default)
+        public async Task<Guid> CreateAdvertAsync(CreateAdvertDto dto, Guid userId, CancellationToken cancellationToken = default)
         {
             var advert = _mapper.Map<Advert>(dto);
             advert.UserId = userId;
             advert.CreatedAt = DateTime.UtcNow;
+
+            await _advertRepository.AddAsync(advert, cancellationToken);
+            await _advertRepository.SaveChangesAsync(cancellationToken);
 
             if (dto.Images != null && dto.Images.Any())
             {
@@ -42,7 +42,7 @@ namespace Application.Services.Implementation
                         image, 
                         advert.Id, 
                         cancellationToken);
-                    
+            
                     advert.Attachments.Add(new Attachment
                     {
                         FileName = attachment.FileName,
@@ -51,10 +51,10 @@ namespace Application.Services.Implementation
                         UploadDate = DateTime.UtcNow
                     });
                 }
+        
+                await _advertRepository.UpdateAsync(advert, cancellationToken);
+                await _advertRepository.SaveChangesAsync(cancellationToken);
             }
-
-            await _advertRepository.AddAsync(advert, cancellationToken);
-            await _advertRepository.SaveChangesAsync(cancellationToken);
 
             return advert.Id;
         }

@@ -41,6 +41,33 @@ namespace Presentation.Controllers
             try
             {
                 await _accountService.RegisterUserAsync(dto);
+                await _accountService.SendEmailConfirmedCode(model.Email);
+                return RedirectToAction("ConfirmEmail", new { email = model.Email });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(model);
+            }
+        }
+
+        // Подтверждение email
+        [HttpGet]
+        public IActionResult ConfirmEmail(string email)
+        {
+            var model = new ConfirmEmailViewModel { Email = email };
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ConfirmEmail(ConfirmEmailViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                await _accountService.EmailConfirmed(model.Email, model.ConfirmCode);
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
@@ -87,6 +114,7 @@ namespace Presentation.Controllers
                 return View(model);
             }
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Logout()
