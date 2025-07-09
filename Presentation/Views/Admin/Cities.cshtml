@@ -1,0 +1,33 @@
+@model List<Application.Dtos.CityDtos.CityDto>
+@{
+    ViewData["Title"] = "Управление городами";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Название</th>
+        <th>Активен</th>
+        <th>Действия</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var city in Model)
+    {
+        <tr>
+            <td>@city.Id</td>
+            <td>@city.Name</td>
+            <td>@(city.IsActive ? "Да" : "Нет")</td>
+            <td>
+                <a asp-action="EditCity" asp-route-id="@city.Id" class="btn btn-sm btn-warning">Редактировать</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a asp-action="CreateCity" class="btn btn-success">Добавить город</a>

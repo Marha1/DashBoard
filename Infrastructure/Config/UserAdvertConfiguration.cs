@@ -25,8 +25,5 @@ public class UserAdvertConfiguration : IEntityTypeConfiguration<UserAdvert>
             .HasForeignKey(ua => ua.AdvertId)
             .OnDelete(DeleteBehavior.Cascade);
         
-        // Уникальный индекс (один пользователь - одно объявление)
-        builder.HasIndex(ua => new { ua.UserId, ua.AdvertId })
-            .IsUnique();
     }
 }

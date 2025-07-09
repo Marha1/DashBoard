@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Главная";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Добро пожаловать на доску объявлений!</h1>
+    
+    <div class="mt-5">
+        @if (User.Identity.IsAuthenticated)
+        {
+            <p>Вы вошли как: @User.Identity.Name</p>
+            <a asp-controller="Account" asp-action="Logout" class="btn btn-danger">Выйти</a>
+        }
+        else
+        {
+            <div class="d-flex justify-content-center gap-3">
+                <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Войти</a>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-success">Зарегистрироваться</a>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,24 @@
+@model Application.Dtos.CityDtos.CityUpdateDto
+@{
+    ViewData["Title"] = "Редактирование города";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="EditCity" method="post">
+    <input type="hidden" asp-for="Id" />
+    
+    <div class="form-group">
+        <label asp-for="Name">Название города</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    
+    <div class="form-check mt-3">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">Активен</label>
+    </div>
+    
+    <button type="submit" class="btn btn-primary mt-3">Сохранить</button>
+</form>

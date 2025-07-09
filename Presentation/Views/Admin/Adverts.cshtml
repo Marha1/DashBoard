@@ -1,0 +1,33 @@
+@model List<Application.Dtos.AdvertDtos.AdvertShortInfoDto>
+@{
+    ViewData["Title"] = "Управление объявлениями";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Заголовок</th>
+        <th>Цена</th>
+        <th>Дата создания</th>
+        <th>Действия</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var advert in Model)
+    {
+        <tr>
+            <td>@advert.Id</td>
+            <td>@advert.Title</td>
+            <td>@advert.Price.ToString("C")</td>
+            <td>@advert.CreatedAt.ToString("g")</td>
+            <td>
+                <a asp-action="EditAdvert" asp-route-id="@advert.Id" class="btn btn-sm btn-warning">Редактировать</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

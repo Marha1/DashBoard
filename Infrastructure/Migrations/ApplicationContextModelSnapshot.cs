@@ -250,8 +250,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AdvertId");
 
-                    b.HasIndex("UserId", "AdvertId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("UserAdverts", (string)null);
                 });

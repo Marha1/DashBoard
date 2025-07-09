@@ -1,0 +1,29 @@
+@model Application.Dtos.CategoryDtos.CategoryCreateDto
+@{
+    ViewData["Title"] = "Добавление категории";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="CreateCategory" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label asp-for="Name">Название категории</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    
+    <div class="form-group mt-3">
+        <label asp-for="ParentId">Родительская категория</label>
+        <select asp-for="ParentId" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name"))" class="form-control">
+            <option value="">-- Без родительской категории --</option>
+        </select>
+    </div>
+    
+    <div class="form-group mt-3">
+        <label asp-for="Image">Изображение</label>
+        <input asp-for="Image" type="file" class="form-control" />
+    </div>
+    
+    <button type="submit" class="btn btn-primary mt-3">Создать</button>
+</form>

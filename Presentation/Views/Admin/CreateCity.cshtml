@@ -1,0 +1,17 @@
+@model Application.Dtos.CityDtos.CityCreateDto
+@{
+    ViewData["Title"] = "Добавление города";
+    Layout = "_AdminLayout";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="CreateCity" method="post">
+    <div class="form-group">
+        <label asp-for="Name">Название города</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    
+    <button type="submit" class="btn btn-primary mt-3">Создать</button>
+</form>

@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "Админ-панель";
+    Layout = "_AdminLayout";
+}
+
+<div class="admin-container">
+    <h2>Администрирование системы</h2>
+    
+    <div class="admin-links">
+        <a asp-controller="Admin" asp-action="Cities" class="btn btn-primary">Управление городами</a>
+        <a asp-controller="Admin" asp-action="Categories" class="btn btn-primary">Управление категориями</a>
+        <a asp-controller="Admin" asp-action="Adverts" class="btn btn-primary">Управление объявлениями</a>
+    </div>
+</div>
